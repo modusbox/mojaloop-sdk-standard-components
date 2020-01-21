@@ -170,7 +170,7 @@ jobs:
 #          command: mkdir -p ./audit/results
 #      - run:
 #          name: Check for new npm vulnerabilities
-#          command: npm run audit:check -- --json > ./audit/results/auditResults.json 
+#          command: npm run audit:check -- --json > ./audit/results/auditResults.json
 #      - store_artifacts:
 #          path: ./audit/results
 #          prefix: audit
@@ -204,6 +204,25 @@ jobs:
       - checkout
       - run:
           name: setup environment vars for SNAPSHOT release
+          command: |
+            echo 'export RELEASE_TAG=$RELEASE_TAG_SNAPSHOT' >> $BASH_ENV
+      - run:
+          <<: *defaults_npm_auth
+      - run:
+          <<: *defaults_npm_publish_release
+      - run:
+          <<: *defaults_slack_announcement
+
+  build-perf:
+    <<: *defaults_working_directory
+    <<: *defaults_docker_node
+    steps:
+      - run:
+          name: Install general dependencies
+          command: *defaults_Dependencies
+      - checkout
+      - run:
+          name: setup environment vars for PERF release
           command: |
             echo 'export RELEASE_TAG=$RELEASE_TAG_SNAPSHOT' >> $BASH_ENV
       - run:
@@ -315,6 +334,25 @@ workflows:
             branches:
               ignore:
                 - /.*/
+
+      - build-perf:
+          context: org-global
+          requires:
+            - setup
+            - test-unit
+          #            - test-coverage
+          #            - test-integration
+          #            - test-functional
+          #            - test-spec
+          #            - vulnerability-check
+          #            - audit-licenses
+          filters:
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*\-perf(\.[0-9]+)/
+            branches:
+              ignore:
+                - /.*/
+
       - build:
           context: org-global
           requires:
